@@ -1,0 +1,165 @@
+/*Calendar Table Styles*/
+table.event_calendar
+{
+    border-collapse: collapse;
+    width:700px;
+    background-color:rgba(0,0,0,0.2);
+}
+td.event_calendar_day
+{
+    height:100px;
+    width:14.2%; /* 100/7 = 14.2 */
+    vertical-align: top;
+    border: thin grey solid;
+    background:rgba(175,175,175,0.7);
+}
+td#weekend
+{
+    background-color: rgba(0,0,0,0.7);
+    color: white;
+}
+th.event_calendar
+{
+    background-color: rgba(200,200,200,1);
+    border: thin grey solid;
+}
+th#calendar_title
+{
+    color: #99CCCC;
+    background-color:rgba(50,50,50,0.7);
+}
+/***************/
+
+/*Text Formatting*/
+calendar-datestamp/*Style of the numbers on calendar*/
+{
+    color:#FFFFFF; 
+}
+calendar-datestamp#weekend/*Style of the numbers on calendar*/
+{
+    color:#FFFFFF; 
+}
+/****************/
+
+/*User Event Classes*/
+div#event_1
+{
+    background-color: rgb(180,80,180);
+    color:rgb(80,0,80);
+}
+
+div#event_2
+{
+    background-color: rgb(0,180,0);
+    color:rgb(0,80,0);
+}
+
+div#event_3
+{
+    background-color: rgb(180,80,60);
+    color:rgb(180,0,0);
+}
+/*******************/
+
+/*default event class*/
+div.event_calendar_event
+{
+    margin:2px;
+    padding:1px;
+    background-color: rgb(80,80,80);
+    color:#FFFFFF;
+}
+/*********************/
+
+/**Event Information Display**/
+div.calendar_event_info_display
+{
+    padding:10px;
+    width:100%-20px;
+    background-color: #DDDDDD;
+    color:#000000;
+    
+}
+h2.calendar_event_info_display
+{
+    font-size: 1.5em;
+	color:inherit;
+}
+p.calendar_event_info_display
+{
+    font-size: 1em;
+	color:inherit;
+}
+p#event_description
+{
+    
+}
+p#event_times
+{
+    font-style: italic;
+}
+/*****************************/
+
+/*Input Form Styling*/
+div.calendar_new_event_form
+{
+    color: #000000;
+}
+div.event_calendar_notification
+{
+    background-color: rgba(200,0,0,0.7);
+    border: solid #FF8080 thick;
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+div#event_calendar_notification_data_correct
+{
+    background-color: rgba(0,200,0,0.7);
+    border: solid #80FF80 thick;
+}
+
+/******************/
+
+/*Calendar Legend Display*/
+div.event_calendar_legend
+{
+    height:1.5em;
+}
+
+/*************************/
+
+
+
+
+/***System Styling***/
+a#calendar_month_nav
+{
+    display: block;
+    width:100%;
+    height:100%;
+    text-decoration: none;
+    color:#FFFFFF;
+    border:none;
+}
+a.calendar_event_link
+{
+    display: block;
+    width:100%;
+    height:100%;
+    text-decoration: none;
+    color: inherit;
+}
+table.calendar_layout_table
+{
+    border-collapse: collapse;
+    background: none;
+    color: inherit;
+}
+td.calendar_layout_table
+{
+    border:none;
+    background: none;
+    vertical-align: top;
+}
+/*******************/
