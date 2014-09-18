@@ -1,0 +1,7 @@
+V0.2:
+-updated 'validate_post_data' to change all quotations in event_title or locations into HTML special characters aswell
+-'validate_post_data' now checks for validity of dates
+-'create_new_event_form' now creates the start day/month/year/hour/min as seperate select options, then formats to sql in script (should avoid user confusion with datetime data format)
+-updated 'display_event_info' to create instances of <br> where a new line character is present in the description.
+-updated 'display_event_info' to display error if event data not found.
+-'create_event_form' no longer unsets all $_POST variables if sucessful, only password, event_title, description and location (Makes it easier to add lots of events in one session)

@@ -1,15 +1,26 @@
-Event Calendar
-v0.1
+/****************/
+/*Event Calendar*/
+/******v0.2******/
+/****************/
 
-Project info:
+
+/***************/
+/*Project info:*/
+/***************/
 A simple calendar project I came up with for 2 websites I was asked to build.
 My primary goal was simplicity: in ideas, in code and in use. 
 
-License info:
-I beleive it's the 'GNU public license': Please feel free to fork, update and modify, but release the new code under the same license so that others can do the same.
+
+/***************/
+/*License info:*/
+/***************/
+I beleive it's the 'GNU public license': Please feel free to fork, update and modify, but release the new code under 
+the same license so that others can do the same.
 
 
-Database Table Structure:
+/***************************/
+/*Database Table Structure:*/
+/***************************/
 NAME			TYPE		NOTES
 id			int		primary key, auto increment
 event_title		text		
@@ -20,9 +31,9 @@ description		text
 event_class		text
 
 
-
-Current Features:
-
+/*******************/
+/*Current Features:*/
+/*******************/
 -Simple php functions to create instances:
 	- calendar		-calendar key
 	- "new event" form	
@@ -30,3 +41,17 @@ Current Features:
 -Most objects can be styled using the CSS style sheet and supplied tags
 -Checks for specified table in database. Creates a new one to the specification if it's not found.
 -Required user defines all in one file, no need to mess with calendar.php
+
+
+/*************/
+/*How to use:*/
+/*************/
+
+Please see example_page.php
+
+Essentially you need to call the inlucde(calendar.php) in the html header (as the code inserts a <link stylesheet> tag)
+Make sure you've got your database connection established with mysqli_connect()
+Then just call the various "create" functions to generate the code on your webpage.
+
+DUring intial setup of the calendar, the "create_event_calendar" function will require a connection with 'CREATE TABLE' 
+priviledges on the database, but after it has setup the table you can change it to a 'SELECT' only connection
