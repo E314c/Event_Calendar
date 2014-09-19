@@ -1,7 +1,7 @@
 <?php
 /*php Event Calendar by E314C*/
 /*
-Current Version: v0.2(pre-release)
+Current Version: v0.2.1
 Original source code and license info can be found at: https://github.com/E314c/Event_Calendar
 */
 
@@ -383,7 +383,7 @@ function create_new_event_form($db_connection)
 					*/
 					{
 					unset($_POST[event_title]);
-					unset($_POST[event_description]);
+					unset($_POST[description]);
 					unset($_POST[location]);
 					unset($_POST[pass]);
 					}
@@ -413,17 +413,19 @@ function create_new_event_form($db_connection)
 		for($x=0;$x<24;$x++)
 		{
 			echo '<option value="'.str_pad($x,2,"0",STR_PAD_LEFT).'"';
-			if($_POST[datetime_start_hour]==$x)
+			if($_POST[datetime_start_hour]==str_pad($x,2,"0",STR_PAD_LEFT))
 				echo' selected="selected"';
 			echo'>'.str_pad($x,2,"0",STR_PAD_LEFT).'</option>';
 		}
 		echo '</select>&nbsp;:&nbsp;<select name="datetime_start_mins">';
-		for($x=0;$x<60;$x++)
+		for($x=0;$x<60;)
 		{
 			echo '<option value="'.str_pad($x,2,"0",STR_PAD_LEFT).'"';
-			if($_POST[datetime_start_mins]==$x)
+			if($_POST[datetime_start_mins]==str_pad($x,2,"0",STR_PAD_LEFT))
 				echo' selected="selected"';
 			echo'>'.str_pad($x,2,"0",STR_PAD_LEFT).'</option>';
+                        //step by minute accuracy level
+                        $x+=INPUT_FORM_MINUTE_ACCURACY;
 		}
 		echo '</select>&nbsp;&nbsp;&nbsp;';
 		
@@ -431,7 +433,7 @@ function create_new_event_form($db_connection)
 		for($x=1;$x<32;$x++)
 		{
 			echo '<option value="'.str_pad($x,2,"0",STR_PAD_LEFT).'"';
-			if($_POST[datetime_start_day]==$x)
+			if($_POST[datetime_start_day]==str_pad($x,2,"0",STR_PAD_LEFT))
 				echo' selected="selected"';
 			echo'>'.str_pad($x,2,"0",STR_PAD_LEFT).'</option>';
 		}
@@ -439,7 +441,7 @@ function create_new_event_form($db_connection)
 		for($x=1;$x<13;$x++)
 		{
 			echo '<option value="'.str_pad($x,2,"0",STR_PAD_LEFT).'"';
-			if($_POST[datetime_start_month]==$x)
+			if($_POST[datetime_start_month]==str_pad($x,2,"0",STR_PAD_LEFT))
 				echo' selected="selected"';
 			echo'>'.date("M",mktime(0,0,0,$x,1,2000)).'</option>';
 		}
@@ -452,17 +454,20 @@ function create_new_event_form($db_connection)
 		for($x=0;$x<24;$x++)
 		{
 			echo '<option value="'.str_pad($x,2,"0",STR_PAD_LEFT).'"';
-			if($_POST[datetime_end_hour]==$x)
+			if($_POST[datetime_end_hour]==str_pad($x,2,"0",STR_PAD_LEFT))
 				echo' selected="selected"';
-			echo'>'.str_pad($x,2,"0",STR_PAD_LEFT).'</option>';
+			echo '>'.str_pad($x,2,"0",STR_PAD_LEFT).'</option>';
 		}
 		echo '</select>&nbsp;:&nbsp;<select name="datetime_end_mins">';
-		for($x=0;$x<60;$x++)
+                $y=0;
+		for($x=0;$x<60;)
 		{
 			echo '<option value="'.str_pad($x,2,"0",STR_PAD_LEFT).'"';
-			if($_POST[datetime_end_mins]==$x)
+			if($_POST[datetime_end_mins]==str_pad($x,2,"0",STR_PAD_LEFT))
 				echo' selected="selected"';
 			echo'>'.str_pad($x,2,"0",STR_PAD_LEFT).'</option>';
+                        //step by minute accuracy level
+                        $x+=INPUT_FORM_MINUTE_ACCURACY;
 		}
 		echo '</select>&nbsp;&nbsp;&nbsp;';
 		
@@ -470,7 +475,7 @@ function create_new_event_form($db_connection)
 		for($x=1;$x<32;$x++)
 		{
 			echo '<option value="'.str_pad($x,2,"0",STR_PAD_LEFT).'"';
-			if($_POST[datetime_end_day]==$x)
+			if($_POST[datetime_end_day]==str_pad($x,2,"0",STR_PAD_LEFT))
 				echo' selected="selected"';
 			echo'>'.str_pad($x,2,"0",STR_PAD_LEFT).'</option>';
 		}
@@ -478,7 +483,7 @@ function create_new_event_form($db_connection)
 		for($x=1;$x<13;$x++)
 		{
 			echo '<option value="'.str_pad($x,2,"0",STR_PAD_LEFT).'"';
-			if($_POST[datetime_end_month]==$x)
+			if($_POST[datetime_end_month]==str_pad($x,2,"0",STR_PAD_LEFT))
 				echo' selected="selected"';
 			echo'>'.date("M",mktime(0,0,0,$x,1,2000)).'</option>';
 		}

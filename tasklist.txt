@@ -1,0 +1,34 @@
+Task list:
+
+next version: v0.3	
+	PHP:
+		- display information for selected event
+			- link/button to close event info
+		- CMS system
+			- "Edit events" page
+
+
+before v1.0
+	PHP:
+		- CMS system
+			-allow event description to contain html tags such as <h> <br> <p> <img>
+				-need to create a list of safe/allowed html tags (ones that won't break the rest of my calendar)
+		
+
+/*****************************/
+/*Whenever I get around to it*/
+/*****************************/
+	PHP:
+	- displaying information for selected event
+		-?display event image/logo
+		- link/button to close event info
+
+	Styling:
+	- Add CSS class tags to all printed html
+		-define list of available tags
+	-?change events from <div> to another container
+	
+	House-keeping:
+		-neaten up the .css file
+			-Categorise and move common edits to the top.
+		-Complete a "how to setup" in readme
