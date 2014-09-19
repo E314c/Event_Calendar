@@ -51,14 +51,22 @@ function url_get_values_month_year($month, $year, $argument)
     {
         case 'next':
             if($month==12)
+            {
                 $year++;
-            $month++;
+                $month=1;
+            }
+            else
+                $month++;
         break;
         
         case 'prev':
             if($month==1)
+            {
                 $year--;
-            $month--;
+                $month=12;
+            }
+            else
+                $month--;
         break;
         
         case 'same':
