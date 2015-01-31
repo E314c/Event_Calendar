@@ -1,7 +1,7 @@
 <?php
 /*php Event Calendar by E314C*/
 /*
-Current Version: v0.2.1
+Current Version: v0.2.2
 Original source code and license info can be found at: https://github.com/E314c/Event_Calendar
 */
 
@@ -89,6 +89,25 @@ function generate_get_string()
     return($url_string);
 }
 
+function get_event_info_by_id($db_connection, $event_id, &$storage_array)
+//input: database connection, event id, array to store event data
+//output: storage array full of results
+//return: results found (1 is okay, 0 or >1 is error)
+{
+	$result=mysqli_query($db_connection,'SELECT * FROM '.CALENDAR_TABLE.' WHERE id="'.$event_id.'"');
+    $num = mysqli_num_rows($result);
+	if($num==1)
+	{
+		$row = mysqli_fetch_array($result);
+		foreach($row as $key => $val)
+		{
+			$storage_array[$key]=$row[$key];
+		}
+	}
+	return $num;
+}
+
+
 function display_event_info($db_connection)
 //input: Connection to database, $_GET[event]
 //Output: <div> containing event information 
@@ -97,12 +116,8 @@ function display_event_info($db_connection)
     if(isset($_GET[event]))
     {
         //retrieve event data
-        $result=mysqli_query($db_connection,'SELECT * FROM '.CALENDAR_TABLE.' WHERE id="'.$_GET[event].'"');
-        $num = mysqli_num_rows($result);
-		if($num>0)
-		{
-			$event = mysqli_fetch_array($result);
-			
+		if(get_event_info_by_id($db_connection, $_GET[event], $event)==1)
+		{	
 			//display info
 			echo '<div class="calendar_event_info_display">';
 			echo '<h2 class="calendar_event_info_display">'.$event[event_title].'</h2>';
@@ -272,11 +287,160 @@ function create_calendar($db_connection)
     }
 }
 
-function create_event_list($db_connection,$list_length)
-//input: Connection to database , list size
-//Output: HTML Table listing all upcoming events
+/*Defines for Event_List*/
 {
-    /*I'll get around to adding this if I feel it's necessary. At the moment it's just an idea*/
+define("LIST_DISPLAY_GET_ID_LINKS",1<<0);	//List will be formatted with links to ?id=<event_id>
+define("LIST_LINKS_PRESERVE_GET_VARS", 1<<1);	//the links in the list will preserve current get values (not default action)
+define("LIST_AS_TABLE",1<<2);	//list will be in html table element
+define("LIST_AS_<UL>",0<<2);	//list will be in html <ul> element (default action)
+}
+/************************/
+function create_event_list($db_connection,$list_length,$list_start=0,$flags)
+//input: Connection to database , list size,list start, flags (as defined above)
+//Output: HTML element listing all upcoming events
+{
+	$result = mysqli_query($db_connection,'SELECT *, DATE_FORMAT(datetime_start,"%d %b %Y") as "datetime_start_formatted" FROM '.CALENDAR_TABLE.' ORDER BY datetime_start DESC LIMIT '.$list_start.' , '.$list_length.';');		//get a list of events within the target range.
+	$res_num = mysqli_num_rows($result);
+	
+	if($res_num>0)
+	{
+		if($flags&LIST_AS_TABLE==LIST_AS_TABLE)//if displaying as a table
+			echo '<table class="EventCalendar_event_list"><tr><th>Event Title</th><th>Event Date</th></tr>';
+		else
+			echo '<ul class="EventCalendar_event_list">';
+			
+		for($i=0;$i<$res_num;$i++)
+		{
+			
+			//beginning of each list object
+			$event = mysqli_fetch_array($result);
+			if($flags&LIST_AS_TABLE==LIST_AS_TABLE)//if displaying as a table
+					echo '<tr><td class="EventCalendar_event_list">';
+			else
+					echo '<li>';
+			
+			
+			if($flags&LIST_DISPLAY_GET_ID_LINKS==LIST_DISPLAY_GET_ID_LINKS) //if we're adding links
+			{
+				echo '<a href="';
+				if($flags&LIST_LINKS_PRESERVE_GET_VARS==LIST_LINKS_PRESERVE_GET_VARS) //if we're preserving get values.
+					echo generate_get_string().'&';
+				else
+					echo '?';
+				
+				echo 'id='.$event[id].'">';
+			}
+			
+			//Echo the event title
+			echo $event[event_title];
+			
+			if($flags&LIST_DISPLAY_GET_ID_LINKS==LIST_DISPLAY_GET_ID_LINKS)
+				echo '</a>';
+			
+			if($flags&LIST_AS_TABLE==LIST_AS_TABLE)//if displaying as a table
+				echo'</td><td class="EventCalendar_event_list">';
+			else	
+				echo ' \t ';
+			
+			//echo the event start time
+			echo $event[datetime_start_formatted];
+			
+			//finish off list item
+			if($flags&LIST_AS_TABLE==LIST_AS_TABLE)//if displaying as a table
+				echo'</td></tr>';
+			else
+				echo '</li>';
+		}//end of for loop
+		
+		if($flags&LIST_AS_TABLE==LIST_AS_TABLE)//if displaying as a table
+			echo '</table>';
+		else
+			echo '</ul>';
+	
+	}//end of "if($res_num>1)"
+}
+
+function text_cleaner($str, $clean_spec)
+//input: a piece of text to be cleaned and what kind of clean (possible cleans: event_title, event_description, htmlspecialchars)
+//return: a string, cleaned and formatted as required
+//purpose: to allow more dynamic str cleaning (because sometimes I need this code to allow me to write <a></a> tags into descriptions, but not titles)
+{
+	//Global conversions:
+	$str=str_replace("'","&apos;",$str); //always replace apostrophes as it's used in the SQL command
+	
+	//Specific cleans
+	switch($clean_spec)
+	{
+		case 'event_description':
+			if(!defined("EVENT_DESCRIPTION_ALLOW_ALL_HTML")) //These conversions are for HTML, if we're allowing all, we don't need them
+			{
+				if(!defined("EVENT_DESCRIPTION_ALLOW_HYPERLINKS"))
+				{	//find all <a> instances and convert to &lt;a&gt;)
+					$match_num=preg_match_all('#</{0,1}a(\s[\w\s="&;:/\d\.]{0,}){0,}>#',$str,$matches,PREG_PATTERN_ORDER);
+					if($match_num>0)
+					{
+						for($i=0;$i<$match_num;$i++)
+						{
+							$replacement[$i] = htmlspecialchars($matches[0][$i],ENT_QUOTES);
+							$matches[0][$i]='#'.$matches[0][$i].'#'; //add new string encapsulation for next preg_replace (else it uses, and thus stips, the <> around the tag)
+						}
+						ksort($matches[0]); //first ksort
+						ksort($replacement);
+						$str=preg_replace($matches[0],$replacement,$str,PREG_PATTERN_ORDER);
+					}
+				}
+				if(!defined("EVENT_DESCRIPTION_ALLOW_B_U_I"))
+				{	//find all <b>,<u>or<i> instances and convert to html special chars
+					$match_num=preg_match_all('#</{0,1}[bui](\s[\w\s="&;:/]){0,}>#',$str,$matches,PREG_PATTERN_ORDER);
+					if($match_num>0)
+					{
+						for($i=0;$i<$match_num;$i++)
+						{
+							$replacement[$i] = htmlspecialchars($matches[0][$i],ENT_QUOTES);
+							$matches[0][$i]='#'.$matches[0][$i].'#'; //add new string encapsulation for next preg_replace (else it uses, and thus stips, the <> around the tag)
+						}
+						ksort($matches[0]); //first ksort
+						ksort($replacement);
+						$str=preg_replace($matches[0],$replacement,$str,PREG_PATTERN_ORDER);
+					}
+				}
+				//convert all non-specified tags:
+				$match_num=preg_match_all('#</{0,1}[^abui>/]{1,}[^>]{0,}>#',$str,$matches,PREG_PATTERN_ORDER); //match all the non-abui tags
+				if($match_num>0)
+				{
+					for($i=0;$i<$match_num;$i++)
+					{
+						$replacement[$i] = htmlspecialchars($matches[0][$i],ENT_QUOTES);
+						$matches[0][$i]='#'.$matches[0][$i].'#'; //add new string encapsulation for next preg_replace (else it uses, and thus stips, the <> around the tag)
+					}
+					ksort($matches[0]); //first ksort
+					ksort($replacement);
+					$str=preg_replace($matches[0],$replacement,$str,PREG_PATTERN_ORDER);
+					echo "\n<br>str after non-abui: ".$str."<br>\n";
+				}
+				$match_num=preg_match_all('#</{0,1}[abui](?![ >])[^>]{0,}>#',$str,$matches,PREG_PATTERN_ORDER); //match abui tags where next character isn't space or >
+				if($match_num>0)
+				{
+					for($i=0;$i<$match_num;$i++)
+					{
+						$replacement[$i] = htmlspecialchars($matches[0][$i],ENT_QUOTES);
+						$matches[0][$i]='#'.$matches[0][$i].'#'; //add new string encapsulation for next preg_replace (else it uses, and thus stips, the <> around the tag)
+					}
+					ksort($matches[0]); //first ksort
+					ksort($replacement);
+					$str=preg_replace($matches[0],$replacement,$str,PREG_PATTERN_ORDER);
+				}
+			}	
+			return $str;
+		
+		case 'event_title':
+			$str=trim(stripslashes(htmlspecialchars($str,ENT_QUOTES)));
+			return $str;
+			
+		
+		default:
+			return trim(stripslashes(htmlspecialchars($str,ENT_QUOTES)));
+	}
 }
 
 
@@ -286,14 +450,21 @@ function validate_post_data(&$data,$mode)
 //purpose: checks data and formats data in the parse array
 {
     //check id for update posts
-    if($mode=='update'&&$data[id]=='')
-        return("Event ID not present, cannot UPDATE without ID.");
+    if($mode=='update')
+	{
+		if($data[id]==''||(!isset($data[id])))	//if not set or blank
+			return("Event ID not present in data, cannot UPDATE without ID.");
+			
+		if(!is_numeric($data[id]))		//if it's not numeric
+			return("Event ID not numeric, cannot UPDATE without valid ID.");
+			
+	}
     
     //check and re-format the data
-    $data[event_title]	=trim(stripslashes(htmlspecialchars($data[event_title],ENT_QUOTES)));;   
-    $data[description]	=trim(stripslashes(htmlspecialchars($data[description],ENT_QUOTES)));;
-    $data[location]		=trim(stripslashes(htmlspecialchars($data[location],ENT_QUOTES)));;
-    $data[event_class]	=trim(stripslashes(htmlspecialchars($data[event_class])));;
+    $data[event_title]	=text_cleaner($data[event_title],'event_title');   
+    $data[description]	=text_cleaner($data[description],'event_description');
+    $data[location]		=text_cleaner($data[location],"");
+    $data[event_class]	=text_cleaner($data[event_class],"");
     
     //check date
     if(!(check_datetime_format_sql($data[datetime_start])&&check_datetime_format_sql($data[datetime_end])))
@@ -338,7 +509,7 @@ function post_event_data($con,$data,$mode)
                                                         datetime_end='".$data[datetime_end]."',
                                                         location='".$data[location]."',
                                                         description='".$data[description]."',
-                                                        event_class='".$data[event_class]."',
+                                                        event_class='".$data[event_class]."'
                                                 WHERE   id=".$data[id].";");
                     break;
                 default:
@@ -352,7 +523,7 @@ function post_event_data($con,$data,$mode)
             }
             else
             {
-                return("Error posting to database");
+                return("Error posting to database. Please contact E314c");
             }
         }
     }
@@ -507,4 +678,188 @@ function create_new_event_form($db_connection)
     echo '</table></form></div>';
 }
 
+function create_event_edit_form($db_connection)
+//input: connection to database
+//output: HTML form that allows editing of current events
+{
+echo '<div class="calendar_edit_event_form">';
+    //the form handling
+    if ($_SERVER['REQUEST_METHOD'] == 'POST')
+    {
+		//concatenate the date together
+		$_POST[datetime_start]=$_POST[datetime_start_year].'-'.$_POST[datetime_start_month].'-'.$_POST[datetime_start_day].' '.$_POST[datetime_start_hour].':'.$_POST[datetime_start_mins];
+		$_POST[datetime_end]=$_POST[datetime_end_year].'-'.$_POST[datetime_end_month].'-'.$_POST[datetime_end_day].' '.$_POST[datetime_end_hour].':'.$_POST[datetime_end_mins];
+		
+        echo '<div class="event_calendar_notification"';
+        if(is_string($error=validate_post_data($_POST,'update'))) //validate data
+            echo '>'.$error;
+        else
+        {
+            if(is_string($error=post_event_data($db_connection,$_POST,'update'))) //post data
+                echo '>'.$error;
+            else
+                {
+                    //unset post data
+                    /*//Originally I had the code unset all $_POST variables, but whilst adding in 20+ events for a website, I decided I just wanted the title, location and description to be cleared
+					foreach($_POST as $key => $val)
+                    {
+                        unset($_POST[$key]);
+                    }
+					*/
+					{
+					unset($_POST[event_title]);
+					unset($_POST[description]);
+					unset($_POST[location]);
+					unset($_POST[pass]);
+					}
+                    echo ' id="event_calendar_notification_data_correct">Data Posted Correctly';
+                }
+        }
+        echo '</div>';
+    }
+    
+	if(isset($_GET[id])&&is_numeric($_GET[id])) //if the event for editting has been selected.
+	{
+		//get event data.
+		get_event_info_by_id($db_connection, $_GET[id], $_POST);
+		
+		//de-concatenate date
+		{/*WORK IN PROGRESS*/
+		//start time
+		$start=explode(" ",$_POST[datetime_start]);
+		$start_date=explode("-",$start[0]);
+		$start_time=explode(":",$start[1]);
+		$_POST[datetime_start_year]=$start_date[0];		$_POST[datetime_start_month]=$start_date[1];	$_POST[datetime_start_day]=$start_date[2];
+		$_POST[datetime_start_hour]=$start_time[0];		$_POST[datetime_start_mins]=$start_time[1];
+
+		
+		//end time
+		$end=explode(" ",$_POST[datetime_end]);
+		$end_date=explode("-",$end[0]);
+		$end_time=explode(":",$end[1]);
+		$_POST[datetime_end_year]=$end_date[0];		$_POST[datetime_end_month]=$end_date[1];	$_POST[datetime_end_day]=$end_date[2];
+		$_POST[datetime_end_hour]=$end_time[0];		$_POST[datetime_end_mins]=$end_time[1];
+		}
+		
+		//actual form
+		echo '<form action="'.htmlspecialchars($_SERVER["PHP_SELF"]).generate_get_string().'" method="post"><table class="calendar_layout_table">';
+		echo '<input type="hidden" name="id" value="'.$_GET[id].'">';
+		//Event title
+		echo '<tr><td class="calendar_layout_table">Event Title:</td><td class="calendar_layout_table"><input type="text" name="event_title" value="'.$_POST[event_title].'"></td></tr>';
+		//Event Class
+		echo '<tr><td class="calendar_layout_table">Event Type:</td><td class="calendar_layout_table"><select name="event_class">';
+		foreach($GLOBALS[calendar_event_classes] as $key => $val)
+		{
+			echo '<option value="'.$key.'"';
+			if($_POST[event_class]==$key)
+				echo' selected="selected"';
+			echo'>'.$val.'</option>';
+		}
+		echo '</select></td></tr>';
+		//Start datetime
+		echo '<tr><td class="calendar_layout_table">Start Time:</td><td class="calendar_layout_table">';
+			echo '<select name="datetime_start_hour">';
+			for($x=0;$x<24;$x++)
+			{
+				echo '<option value="'.str_pad($x,2,"0",STR_PAD_LEFT).'"';
+				if($_POST[datetime_start_hour]==str_pad($x,2,"0",STR_PAD_LEFT))
+					echo' selected="selected"';
+				echo'>'.str_pad($x,2,"0",STR_PAD_LEFT).'</option>';
+			}
+			echo '</select>&nbsp;:&nbsp;<select name="datetime_start_mins">';
+			for($x=0;$x<60;)
+			{
+				echo '<option value="'.str_pad($x,2,"0",STR_PAD_LEFT).'"';
+				if($_POST[datetime_start_mins]==str_pad($x,2,"0",STR_PAD_LEFT))
+					echo' selected="selected"';
+				echo'>'.str_pad($x,2,"0",STR_PAD_LEFT).'</option>';
+							//step by minute accuracy level
+							$x+=INPUT_FORM_MINUTE_ACCURACY;
+			}
+			echo '</select>&nbsp;&nbsp;&nbsp;';
+			
+			echo ' Date:&nbsp;<select name="datetime_start_day">';
+			for($x=1;$x<32;$x++)
+			{
+				echo '<option value="'.str_pad($x,2,"0",STR_PAD_LEFT).'"';
+				if($_POST[datetime_start_day]==str_pad($x,2,"0",STR_PAD_LEFT))
+					echo' selected="selected"';
+				echo'>'.str_pad($x,2,"0",STR_PAD_LEFT).'</option>';
+			}
+			echo '</select>&nbsp;-&nbsp;<select name="datetime_start_month">';
+			for($x=1;$x<13;$x++)
+			{
+				echo '<option value="'.str_pad($x,2,"0",STR_PAD_LEFT).'"';
+				if($_POST[datetime_start_month]==str_pad($x,2,"0",STR_PAD_LEFT))
+					echo' selected="selected"';
+				echo'>'.date("M",mktime(0,0,0,$x,1,2000)).'</option>';
+			}
+			echo '</select>&nbsp;-&nbsp;';
+			echo '<input type="text" name="datetime_start_year" maxlength="4" value="'.$_POST[datetime_start_year].'">';
+		echo	'</td></tr>';
+		//end datetime
+			echo '<tr><td class="calendar_layout_table">End Time:</td><td class="calendar_layout_table">';
+			echo '<select name="datetime_end_hour">';
+			for($x=0;$x<24;$x++)
+			{
+				echo '<option value="'.str_pad($x,2,"0",STR_PAD_LEFT).'"';
+				if($_POST[datetime_end_hour]==str_pad($x,2,"0",STR_PAD_LEFT))
+					echo' selected="selected"';
+				echo '>'.str_pad($x,2,"0",STR_PAD_LEFT).'</option>';
+			}
+			echo '</select>&nbsp;:&nbsp;<select name="datetime_end_mins">';
+					$y=0;
+			for($x=0;$x<60;)
+			{
+				echo '<option value="'.str_pad($x,2,"0",STR_PAD_LEFT).'"';
+				if($_POST[datetime_end_mins]==str_pad($x,2,"0",STR_PAD_LEFT))
+					echo' selected="selected"';
+				echo'>'.str_pad($x,2,"0",STR_PAD_LEFT).'</option>';
+							//step by minute accuracy level
+							$x+=INPUT_FORM_MINUTE_ACCURACY;
+			}
+			echo '</select>&nbsp;&nbsp;&nbsp;';
+			
+			echo ' Date:&nbsp;<select name="datetime_end_day">';
+			for($x=1;$x<32;$x++)
+			{
+				echo '<option value="'.str_pad($x,2,"0",STR_PAD_LEFT).'"';
+				if($_POST[datetime_end_day]==str_pad($x,2,"0",STR_PAD_LEFT))
+					echo' selected="selected"';
+				echo'>'.str_pad($x,2,"0",STR_PAD_LEFT).'</option>';
+			}
+			echo '</select>&nbsp;-&nbsp;<select name="datetime_end_month">';
+			for($x=1;$x<13;$x++)
+			{
+				echo '<option value="'.str_pad($x,2,"0",STR_PAD_LEFT).'"';
+				if($_POST[datetime_end_month]==str_pad($x,2,"0",STR_PAD_LEFT))
+					echo' selected="selected"';
+				echo'>'.date("M",mktime(0,0,0,$x,1,2000)).'</option>';
+			}
+			echo '</select>&nbsp;-&nbsp;';
+			echo '<input type="text" name="datetime_end_year" maxlength="4" value="'.$_POST[datetime_end_year].'">';
+		echo	'</td></tr>';
+		//Location
+		echo '<tr><td class="calendar_layout_table">Location: </td><td class="calendar_layout_table"><input type="text" name="location" value="'.$_POST[location].'"></td></tr>';
+		//Description
+		echo '<tr><td class="calendar_layout_table">Event Description:</td><td class="calendar_layout_table"><textarea name="description" rows="5" cols="40">'.$_POST[description].'</textarea></td></tr>';
+		echo '<tr><td class="calendar_layout_table">Password:</td><td class="calendar_layout_table"><input type="password" name="pass"></td></tr>';
+		echo '<tr><td class="calendar_layout_table" colspan="2"><input type="submit" name="event_calendar_submit" value="Submit"></td></tr>';
+		echo '</table></form>';
+	}//end of 'if(isset($_GET[id])'
+	else //default to showing off list of events.
+	{
+		echo 'Please select the event you would like to edit:'."<br>\n";
+		
+		//links forward and back a page
+		if($_GET[list_page]!=0)
+			echo '<a href="'.generate_get_string().'&list_page='.($_GET[list_page]-1).'">Previous page</a>';
+		echo "\t\t".'Displaying '.(($_GET[list_page]*EDIT_EVENT_LIST_LENGTH)+1).'-'.(($_GET[list_page]+1)*EDIT_EVENT_LIST_LENGTH);
+		echo '<a href="'.generate_get_string().'&list_page='.($_GET[list_page]+1).'">Next Page</a>';
+		
+		//list of events
+		create_event_list($db_connection,EDIT_EVENT_LIST_LENGTH,($_GET[list_page]*EDIT_EVENT_LIST_LENGTH),(LIST_DISPLAY_GET_ID_LINKS|LIST_LINKS_PRESERVE_GET_VARS|LIST_AS_TABLE));
+	}
+	echo '</div>'; //end of <div class="calendar_edit_event_form">
+}
 ?>

@@ -14,18 +14,20 @@ My primary goal was simplicity: in ideas, in code and in use.
 /***************/
 /*License info:*/
 /***************/
-I beleive it's the 'GNU public license': Please feel free to fork, update and modify, but release the new code under 
-the same license so that others can do the same.
+I should really look into the correct license to use, but essentially what I want is this:
+-Feel free to use and modify this code for any purpose.
+-If you're going to make money off of it, atleast let the people you're selling it to know which bits I made.
+-I suggest sharing your modifications of this with others aswell, but 
 
 
 /***************************/
 /*Database Table Structure:*/
 /***************************/
 NAME			TYPE		NOTES
-id			int		primary key, auto increment
+id				int			primary key, auto increment
 event_title		text		
-datetime_start		datetime	
-datetime_end		datetime	
+datetime_start	datetime	
+datetime_end	datetime	
 location		text		
 description		text		
 event_class		text
@@ -36,7 +38,7 @@ event_class		text
 /*******************/
 -Simple php functions to create instances:
 	- calendar		-calendar key
-	- "new event" form	
+	- "new event" form	-"edit event" form
 -Handles Multiday events
 -Most objects can be styled using the CSS style sheet and supplied tags
 -Checks for specified table in database. Creates a new one to the specification if it's not found.
@@ -53,5 +55,5 @@ Essentially you need to call the inlucde(calendar.php) in the html header (as th
 Make sure you've got your database connection established with mysqli_connect()
 Then just call the various "create" functions to generate the code on your webpage.
 
-DUring intial setup of the calendar, the "create_event_calendar" function will require a connection with 'CREATE TABLE' 
+During intial setup of the calendar, the "create_event_calendar" function will require a connection with 'CREATE TABLE' 
 priviledges on the database, but after it has setup the table you can change it to a 'SELECT' only connection

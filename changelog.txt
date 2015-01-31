@@ -1,3 +1,17 @@
+/* v0.2.2 */
+
+-added support for some html tags in event description
+	-available tags can be selecte in user config.
+	-currently only "<a>" and/or  "<b> <i> and <u>" or "all HTML" can be selected.
+
+-new function "create_event_list"
+	-allows a list of events to be output, either in <ul> or <table> format
+
+-added "create_event_edit_form", so now you can edit your events.
+
+
+
+
 /* v0.2.1 */
 
 -Added new user variable 'INPUT_FORM_MINUTE_ACCURACY' which allows user to set accuracy of times for events. This sets the steps for "create_event_form" 'time_mins' option

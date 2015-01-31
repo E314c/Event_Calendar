@@ -130,6 +130,24 @@ div.event_calendar_legend
 /*************************/
 
 
+/*Event List styling*/
+table.EventCalendar_event_list
+{
+	border-collapse:collapse;
+}
+
+td.EventCalendar_event_list
+{
+padding:2px,5px;
+}
+
+ul.EventCalendar_event_list
+{
+
+}
+
+/********************/
+
 
 
 /***System Styling***/
