@@ -1,7 +1,7 @@
 <?php
 /*php Event Calendar by E314C*/
 /*
-Current Version: v0.2.2
+Current Version: v0.2.3 (beta)
 Original source code and license info can be found at: https://github.com/E314c/Event_Calendar
 */
 
@@ -78,15 +78,37 @@ function url_get_values_month_year($month, $year, $argument)
 
 
 
-function generate_get_string()
-//purpose: takes all the url's $_GET data and outputs a string to add to url. This means we can maintain _GET values where needed
+function generate_get_string($exclusions="")
+//purpose: take current get values and create a string for them
+//input: names of any GET values to be excluded
 {
-    $url_string = '?';
-    foreach($_GET as $key=>$val)
-    {
-        $url_string = $url_string.$key.'='.$val;
-    }
-    return($url_string);
+	$str="";
+	if(is_array($exclusions))
+	{
+		foreach($_GET as $key => $val)
+		{
+			//check if exlusion
+			$flag=1;
+			foreach($exclusions as $var)
+			{
+				if($key==$var)	//if match set flag to 0
+					$flag=0;	
+			}
+			
+			if($flag) //only concatenate if not in exclusion
+				$str.='&'.$key.'='.$val;
+			
+		}
+	}
+	else
+	{
+	foreach($_GET as $key => $val)
+		{
+			if($key!=$exclusions) //only concatenate if not in exclusion
+				$str.='&'.$key.'='.$val;
+		}
+	}
+	return $str;
 }
 
 function get_event_info_by_id($db_connection, $event_id, &$storage_array)
@@ -119,7 +141,8 @@ function display_event_info($db_connection)
 		if(get_event_info_by_id($db_connection, $_GET[event], $event)==1)
 		{	
 			//display info
-			echo '<div class="calendar_event_info_display">';
+			echo '<div class="calendar_event_info_display" style="position:relative;">';
+			echo '<div style="position:absolute;top:5px;right:5px;"><a href="?'.generate_get_string("event").'">[X]</a></div>';
 			echo '<h2 class="calendar_event_info_display">'.$event[event_title].'</h2>';
 			echo '<p class="calendar_event_info_display" id="event_times">Start: '.format_sql_datetime($event[datetime_start]).'<br> Ends: '.format_sql_datetime($event[datetime_end]).'</p>';
 			echo '<p class="calendar_event_info_display" id="event_location">Location: '.$event[location].'</p>';
@@ -286,6 +309,13 @@ function create_calendar($db_connection)
         calendar_display_month($db_connection,$GLOBALS[cur_month],$GLOBALS[cur_year]);
     }
 }
+function events_db_count($db_connection)
+//returns: number of events on the database
+{
+	$result = mysqli_query($db_connection,'SELECT * FROM '.CALENDAR_TABLE.';');		//get list of all events
+	return mysqli_num_rows($result);
+}
+
 
 /*Defines for Event_List*/
 {
@@ -322,11 +352,9 @@ function create_event_list($db_connection,$list_length,$list_start=0,$flags)
 			
 			if($flags&LIST_DISPLAY_GET_ID_LINKS==LIST_DISPLAY_GET_ID_LINKS) //if we're adding links
 			{
-				echo '<a href="';
+				echo '<a href="?';
 				if($flags&LIST_LINKS_PRESERVE_GET_VARS==LIST_LINKS_PRESERVE_GET_VARS) //if we're preserving get values.
 					echo generate_get_string().'&';
-				else
-					echo '?';
 				
 				echo 'id='.$event[id].'">';
 			}
@@ -365,9 +393,6 @@ function text_cleaner($str, $clean_spec)
 //return: a string, cleaned and formatted as required
 //purpose: to allow more dynamic str cleaning (because sometimes I need this code to allow me to write <a></a> tags into descriptions, but not titles)
 {
-	//Global conversions:
-	$str=str_replace("'","&apos;",$str); //always replace apostrophes as it's used in the SQL command
-	
 	//Specific cleans
 	switch($clean_spec)
 	{
@@ -431,16 +456,15 @@ function text_cleaner($str, $clean_spec)
 					$str=preg_replace($matches[0],$replacement,$str,PREG_PATTERN_ORDER);
 				}
 			}	
-			return $str;
+			break;
 		
 		case 'event_title':
-			$str=trim(stripslashes(htmlspecialchars($str,ENT_QUOTES)));
-			return $str;
-			
-		
 		default:
-			return trim(stripslashes(htmlspecialchars($str,ENT_QUOTES)));
+			$str=trim(stripslashes(htmlspecialchars($str,ENT_QUOTES)));
 	}
+	
+	//Global conversions and return: 
+	return str_replace("'","&apos;",$str); //always replace apostrophes as it's used in the SQL command
 }
 
 
@@ -571,9 +595,28 @@ function create_new_event_form($db_connection)
         }
         echo '</div>';
     }
+	
+	//Some default values for the form:
+		//day
+	if(!isset($_POST[datetime_start_day]))
+		$_POST[datetime_start_day]=date('d');
+	if(!isset($_POST[datetime_end_day]))
+		$_POST[datetime_end_day]=date('d');
+		//month
+	if(!isset($_POST[datetime_start_month]))
+		$_POST[datetime_start_month]=date('m');
+	if(!isset($_POST[datetime_end_month]))
+		$_POST[datetime_end_month]=date('m');
+		//year
+	if(!isset($_POST[datetime_start_year]))
+		$_POST[datetime_start_year]=date('Y');
+	if(!isset($_POST[datetime_end_year]))
+		$_POST[datetime_end_year]=date('Y');
+		
+	
     
     //actual form
-    echo '<form action="'.htmlspecialchars($_SERVER["PHP_SELF"]).generate_get_string().'" method="post"><table class="calendar_layout_table">';
+    echo '<form action="'.htmlspecialchars($_SERVER["PHP_SELF"]).'?'.generate_get_string().'" method="post"><table class="calendar_layout_table">';
     //Event title
 	echo '<tr><td class="calendar_layout_table">Event Title:</td><td class="calendar_layout_table"><input type="text" name="event_title" value="'.$_POST[event_title].'"></td></tr>';
     //Event Class
@@ -698,22 +741,7 @@ echo '<div class="calendar_edit_event_form">';
             if(is_string($error=post_event_data($db_connection,$_POST,'update'))) //post data
                 echo '>'.$error;
             else
-                {
-                    //unset post data
-                    /*//Originally I had the code unset all $_POST variables, but whilst adding in 20+ events for a website, I decided I just wanted the title, location and description to be cleared
-					foreach($_POST as $key => $val)
-                    {
-                        unset($_POST[$key]);
-                    }
-					*/
-					{
-					unset($_POST[event_title]);
-					unset($_POST[description]);
-					unset($_POST[location]);
-					unset($_POST[pass]);
-					}
-                    echo ' id="event_calendar_notification_data_correct">Data Posted Correctly';
-                }
+				echo ' id="event_calendar_notification_data_correct">Data Posted Correctly';
         }
         echo '</div>';
     }
@@ -724,25 +752,25 @@ echo '<div class="calendar_edit_event_form">';
 		get_event_info_by_id($db_connection, $_GET[id], $_POST);
 		
 		//de-concatenate date
-		{/*WORK IN PROGRESS*/
-		//start time
-		$start=explode(" ",$_POST[datetime_start]);
-		$start_date=explode("-",$start[0]);
-		$start_time=explode(":",$start[1]);
-		$_POST[datetime_start_year]=$start_date[0];		$_POST[datetime_start_month]=$start_date[1];	$_POST[datetime_start_day]=$start_date[2];
-		$_POST[datetime_start_hour]=$start_time[0];		$_POST[datetime_start_mins]=$start_time[1];
+		{
+			//start time
+			$start=explode(" ",$_POST[datetime_start]);
+			$start_date=explode("-",$start[0]);
+			$start_time=explode(":",$start[1]);
+			$_POST[datetime_start_year]=$start_date[0];		$_POST[datetime_start_month]=$start_date[1];	$_POST[datetime_start_day]=$start_date[2];
+			$_POST[datetime_start_hour]=$start_time[0];		$_POST[datetime_start_mins]=$start_time[1];
 
-		
-		//end time
-		$end=explode(" ",$_POST[datetime_end]);
-		$end_date=explode("-",$end[0]);
-		$end_time=explode(":",$end[1]);
-		$_POST[datetime_end_year]=$end_date[0];		$_POST[datetime_end_month]=$end_date[1];	$_POST[datetime_end_day]=$end_date[2];
-		$_POST[datetime_end_hour]=$end_time[0];		$_POST[datetime_end_mins]=$end_time[1];
+			
+			//end time
+			$end=explode(" ",$_POST[datetime_end]);
+			$end_date=explode("-",$end[0]);
+			$end_time=explode(":",$end[1]);
+			$_POST[datetime_end_year]=$end_date[0];		$_POST[datetime_end_month]=$end_date[1];	$_POST[datetime_end_day]=$end_date[2];
+			$_POST[datetime_end_hour]=$end_time[0];		$_POST[datetime_end_mins]=$end_time[1];
 		}
 		
 		//actual form
-		echo '<form action="'.htmlspecialchars($_SERVER["PHP_SELF"]).generate_get_string().'" method="post"><table class="calendar_layout_table">';
+		echo '<form action="'.htmlspecialchars($_SERVER["PHP_SELF"]).'?'.generate_get_string().'" method="post"><table class="calendar_layout_table">';
 		echo '<input type="hidden" name="id" value="'.$_GET[id].'">';
 		//Event title
 		echo '<tr><td class="calendar_layout_table">Event Title:</td><td class="calendar_layout_table"><input type="text" name="event_title" value="'.$_POST[event_title].'"></td></tr>';
@@ -840,22 +868,31 @@ echo '<div class="calendar_edit_event_form">';
 			echo '<input type="text" name="datetime_end_year" maxlength="4" value="'.$_POST[datetime_end_year].'">';
 		echo	'</td></tr>';
 		//Location
-		echo '<tr><td class="calendar_layout_table">Location: </td><td class="calendar_layout_table"><input type="text" name="location" value="'.$_POST[location].'"></td></tr>';
+		echo '<tr><td class="calendar_layout_table">Location: </td><td class="calendar_layout_table"><input type="text" name="location" value="'.$_POST[location].'"></td></tr>'."\n";
 		//Description
-		echo '<tr><td class="calendar_layout_table">Event Description:</td><td class="calendar_layout_table"><textarea name="description" rows="5" cols="40">'.$_POST[description].'</textarea></td></tr>';
-		echo '<tr><td class="calendar_layout_table">Password:</td><td class="calendar_layout_table"><input type="password" name="pass"></td></tr>';
-		echo '<tr><td class="calendar_layout_table" colspan="2"><input type="submit" name="event_calendar_submit" value="Submit"></td></tr>';
+		echo '<tr><td class="calendar_layout_table">Event Description:</td><td class="calendar_layout_table"><textarea name="description" rows="5" cols="40">'.$_POST[description].'</textarea></td></tr>'."\n";
+		echo '<tr><td class="calendar_layout_table">Password:</td><td class="calendar_layout_table"><input type="password" name="pass"></td></tr>'."\n";
+		echo '<tr><td class="calendar_layout_table" colspan="2"><input type="submit" name="event_calendar_submit" value="Submit"></td></tr>'."\n";
 		echo '</table></form>';
 	}//end of 'if(isset($_GET[id])'
 	else //default to showing off list of events.
 	{
 		echo 'Please select the event you would like to edit:'."<br>\n";
 		
-		//links forward and back a page
+		//links forward and back a page	
 		if($_GET[list_page]!=0)
-			echo '<a href="'.generate_get_string().'&list_page='.($_GET[list_page]-1).'">Previous page</a>';
-		echo "\t\t".'Displaying '.(($_GET[list_page]*EDIT_EVENT_LIST_LENGTH)+1).'-'.(($_GET[list_page]+1)*EDIT_EVENT_LIST_LENGTH);
-		echo '<a href="'.generate_get_string().'&list_page='.($_GET[list_page]+1).'">Next Page</a>';
+			echo '<a href="?'.generate_get_string().'&list_page='.($_GET[list_page]-1).'">Previous page</a>&nbsp;&nbsp;';
+		if((($_GET[list_page]+1)*EDIT_EVENT_LIST_LENGTH)<events_db_count($db_connection))
+		{//only display next page if the full data list hasn't been reached
+			echo "\t\t".'Displaying '.(($_GET[list_page]*EDIT_EVENT_LIST_LENGTH)+1).' - '.(($_GET[list_page]+1)*EDIT_EVENT_LIST_LENGTH)."\t\t";
+			echo '&nbsp;&nbsp;<a href="?'.generate_get_string().'&list_page='.($_GET[list_page]+1).'">Next Page</a>'."\n";
+		}
+		else
+		{ //if the final chunk of data is on screen, don't show next page
+			echo "\t\t".'Displaying '.(($_GET[list_page]*EDIT_EVENT_LIST_LENGTH)+1).'-'.events_db_count($db_connection);
+		}
+		
+		
 		
 		//list of events
 		create_event_list($db_connection,EDIT_EVENT_LIST_LENGTH,($_GET[list_page]*EDIT_EVENT_LIST_LENGTH),(LIST_DISPLAY_GET_ID_LINKS|LIST_LINKS_PRESERVE_GET_VARS|LIST_AS_TABLE));

@@ -6,6 +6,8 @@ next version: v0.3
 			- link/button to close event info
 		- CMS system
 			- "Edit events" page
+				-make "prev_page/displaying/next_page" look nicer
+		
 
 
 before v1.0
@@ -13,6 +15,7 @@ before v1.0
 		- CMS system
 			-allow event description to contain html tags such as <h> <br> <p> <img>
 				-need to create a list of safe/allowed html tags (ones that won't break the rest of my calendar)
+				-allow default tag replacements to be defined, ie/ replaces all '<a href="XX">' with '<a style="YY" href="XX">'.
 		
 
 /*****************************/

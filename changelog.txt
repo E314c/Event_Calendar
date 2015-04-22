@@ -1,3 +1,14 @@
+/* v0.2.3 */
+-fixed issue with "text_cleaner" cleaning apostrophes twice, leading to &amp;apos; stored in database.
+-fixed issue in "create_event_edit_form" where your could go onto infinite list pages of blank tables.
+-modified "generate_get_string" to allow exclusions, useful when wanting to return to a page, dropping some GET values
+
+-added '[X]' link to the top right of "calendar_event_info_display", which closes the info panel.
+-added default values to "create_event" form: date is now automatically set as today's date.
+
+
+
+
 /* v0.2.2 */
 
 -added support for some html tags in event description
