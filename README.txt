@@ -1,6 +1,6 @@
 /****************/
 /*Event Calendar*/
-/******v0.2******/
+/******v0.3******/
 /****************/
 
 
@@ -17,7 +17,7 @@ My primary goal was simplicity: in ideas, in code and in use.
 I should really look into the correct license to use, but essentially what I want is this:
 -Feel free to use and modify this code for any purpose.
 -If you're going to make money off of it, atleast let the people you're selling it to know which bits I made.
--I suggest sharing your modifications of this with others aswell, but 
+-I suggest sharing your modifications of this with others aswell.
 
 
 /***************************/
@@ -39,6 +39,7 @@ event_class		text
 -Simple php functions to create instances:
 	- calendar		-calendar key
 	- "new event" form	-"edit event" form
+	- event_list
 -Handles Multiday events
 -Most objects can be styled using the CSS style sheet and supplied tags
 -Checks for specified table in database. Creates a new one to the specification if it's not found.
@@ -52,8 +53,8 @@ event_class		text
 Please see example_page.php
 
 Essentially you need to call the inlucde(calendar.php) in the html header (as the code inserts a <link stylesheet> tag)
-Make sure you've got your database connection established with mysqli_connect()
+Make sure you've setup your database connection in the user_defines.
 Then just call the various "create" functions to generate the code on your webpage.
 
 During intial setup of the calendar, the "create_event_calendar" function will require a connection with 'CREATE TABLE' 
-priviledges on the database, but after it has setup the table you can change it to a 'SELECT' only connection
+privileges on the database, but after it has setup the table you can change it to an "VIEW/INSERT/UPDATE" connection

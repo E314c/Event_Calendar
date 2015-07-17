@@ -1,3 +1,19 @@
+/* v0.3 */
+-added alternate authentication method: user now defines a function to return true.
+	--added code for additional form fields to support this change
+-changed all connection calls to one global connection defined in usr_defines
+
+-added ability to delete events from the "edit event" form
+
+-fixed issue with event_description not detecting some <a href=""> tags
+	--turns out it was an issue detecting any tags with " in. Re-coded the whole section to perform a bit better.
+	
+- You can know have an event_edit and event_create form on the same page without major conflicts
+	--there will still be issues with one form picking up data from the other after a post (might fix, but I don't think you should have 2 forms on the same page anyways)
+
+
+
+
 /* v0.2.3 */
 -fixed issue with "text_cleaner" cleaning apostrophes twice, leading to &amp;apos; stored in database.
 -fixed issue in "create_event_edit_form" where your could go onto infinite list pages of blank tables.
