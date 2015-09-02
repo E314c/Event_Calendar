@@ -1,7 +1,7 @@
 <?php
 /*php Event Calendar by E314C*/
 /*
-Current Version: v0.3
+Current Version: v0.3.5
 Original source code and license info can be found at: https://github.com/E314c/Event_Calendar
 */
 
@@ -418,67 +418,7 @@ function text_cleaner($str, $clean_spec)
 		case 'event_description':
 			if(!defined("EVENT_DESCRIPTION_ALLOW_ALL_HTML")) //These conversions are for HTML, if we're allowing all, we don't need them
 			{
-				//incase the text comes in all silly escaped.
-				$str=str_replace(array('\"',"\'"),array('"','"'),$str);
 				
-				$match_num=preg_match_all('#</{0,1}[\w]{1,}[^>]{0,}>#',$str,$matches,PREG_PATTERN_ORDER); //match all possible html tags
-				if($match_num>0)
-				{
-					for($i=0;$i<$match_num;$i++)
-					{
-						$replacement[$i] = htmlspecialchars($matches[0][$i],ENT_QUOTES);
-						$matches[0][$i]='#'.$matches[0][$i].'#'; //add new string encapsulation for next preg_replace (else it uses, and thus stips, the <> around the tag)
-					}
-					ksort($matches[0]); //first ksort
-					ksort($replacement);
-					$str=preg_replace($matches[0],$replacement,$str,PREG_PATTERN_ORDER);
-				}
-				$match_num=preg_match_all('#</{0,1}[abui](?![ >])[^>]{0,}>#',$str,$matches,PREG_PATTERN_ORDER); //match abui tags where next character isn't space or >
-				if($match_num>0)
-				{
-					for($i=0;$i<$match_num;$i++)
-					{
-						$replacement[$i] = htmlspecialchars($matches[0][$i],ENT_QUOTES);
-						$matches[0][$i]='#'.$matches[0][$i].'#'; //add new string encapsulation for next preg_replace (else it uses, and thus stips, the <> around the tag)
-					}
-					ksort($matches[0]); //first ksort
-					ksort($replacement);
-					$str=preg_replace($matches[0],$replacement,$str,PREG_PATTERN_ORDER);
-				}
-				
-				//de-convert hyperlinks
-				if(defined("EVENT_DESCRIPTION_ALLOW_HYPERLINKS"))
-				{	//find all &lt;a(...)&gt; instances and convert back to <a(...)>
-					$match_num=preg_match_all('#(&lt;)/{0,1}a(\s[\w\s="\-&/\?;:\d\.\\\\](?:(?!&gt;).){0,}){0,}(&gt;)#',$str,$matches,PREG_PATTERN_ORDER);
-					if($match_num>0)
-					{
-						for($i=0;$i<$match_num;$i++)
-						{
-							$replacement[$i] = str_replace($GLOBALS[html_special_chars][replacements],$GLOBALS[html_special_chars][chars],$matches[0][$i]); //use the global defined html_special_chars
-							$matches[0][$i]='#'.$matches[0][$i].'#'; //add new string encapsulation for next preg_replace (else it uses, and thus stips, the <> around the tag)
-						}
-						ksort($matches[0]); //ksort to make sure it's in the right order.
-						ksort($replacement);
-						$str=preg_replace($matches[0],$replacement,$str,PREG_PATTERN_ORDER);
-					}
-				}
-				
-				//de-convert BUI tags
-				if(defined("EVENT_DESCRIPTION_ALLOW_B_U_I"))
-				{
-					$match_num=preg_match_all('#(&lt;)/{0,1}[bui](\s[\w\s="\-&/\?;:\d\.\\\\](?:(?!&gt;).){0,}){0,}(&gt;)#',$str,$matches,PREG_PATTERN_ORDER);
-					if($match_num>0)
-					{
-						for($i=0;$i<$match_num;$i++)
-						{
-							$replacement[$i] = str_replace($GLOBALS[html_special_chars][replacements],$GLOBALS[html_special_chars][chars],$matches[0][$i]); //use the global defined html_special_chars
-							$matches[0][$i]='#'.$matches[0][$i].'#'; //add new string encapsulation for next preg_replace (else it uses, and thus stips, the <> around the tag)
-						}
-						ksort($matches[0]); //ksort to make sure it's in the right order.
-						ksort($replacement);
-						$str=preg_replace($matches[0],$replacement,$str,PREG_PATTERN_ORDER);
-					}
-				}
 			}	
 			break;
 		
@@ -492,6 +432,46 @@ function text_cleaner($str, $clean_spec)
 	return str_replace("'","\'",$str); //always replace apostrophes as it's used in the SQL command
 }
 
+function event_calendar_html_tag_cleaner($str)
+//input: a str to clean, tags that shouldn't be converted.
+//return: a string, cleaned and formatted as required
+//purpose: this function html sanatises a str, ignoring tags specified.
+{
+	global $EVENT_CALENDAR_allowed_html_tags;
+	$html_special_chars = array(
+	'chars' => array('<','>',"'",'"','&'),
+	'replacements' => array('&lt;','&gt;','&apos;','&quot;','&amp;')
+);
+	
+	$match_num=preg_match_all('#</{0,1}[\w]{1,}[^>]{0,}>#',$str,$matches,PREG_PATTERN_ORDER); //match all possible html tags
+	if($match_num>0)
+	{
+		for($i=0;$i<$match_num;$i++)
+		{
+			$replacement[$i] = htmlspecialchars($matches[0][$i],ENT_QUOTES);
+			$matches[0][$i]='|'.$matches[0][$i].'|'; //add new string encapsulation for next preg_replace (else it uses, and thus stips, the <> around the tag)
+		}
+		ksort($matches[0]); //first ksort
+		ksort($replacement);
+		$str=preg_replace($matches[0],$replacement,$str,PREG_PATTERN_ORDER);
+	}
+	//de-convert specified tags
+	foreach($EVENT_CALENDAR_allowed_html_tags as $val)
+	{	//find all &lt;[tag](...)&gt; instances and convert back to <[tag](...)>
+		$match_num=preg_match_all('|(&lt;)/{0,1}'.$val.'(\s[\w\s="\-&/\?;:\d\.\\\\](?:(?!&gt;).){0,}){0,}(&gt;)|',$str,$matches,PREG_PATTERN_ORDER);
+		if($match_num>0)
+		{
+			for($i=0;$i<$match_num;$i++)
+			{
+				$replacement[$i] = str_replace($html_special_chars[replacements],$html_special_chars[chars],$matches[0][$i]); //use the global defined html_special_chars
+				$matches[0][$i]='|'.$matches[0][$i].'|'; //add new string encapsulation for next preg_replace (else it uses, and thus stips, the <> around the tag)
+			}
+			ksort($matches[0]); //ksort to make sure it's in the right order.
+			ksort($replacement);
+			$str=preg_replace($matches[0],$replacement,$str,PREG_PATTERN_ORDER);
+		}
+	}
+}
 
 function validate_post_data(&$data,$mode)
 //input: data to be posted, mode (update,insert)

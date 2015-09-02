@@ -28,9 +28,8 @@ function event_calendar_authenication($data)
 /***************/
 
 /**USER OPTIONS**/
-//comment or uncomment these defines to change how events are handled
-//define("EVENT_DESCRIPTION_ALLOW_HYPERLINKS",1);	//allow hyperlinks in event description
-//define("EVENT_DESCRIPTION_ALLOW_B_U_I",1);		//allow <b>,<u> or <i> tags in event description
+//This is an array HTML tags that will not be sanatised for the calendar body (unless "allow_all_html" is defined)
+$EVENT_CALENDAR_allowed_html_tags=array('b','a','u','i','h1','h2','iframe','br','img','span');
 //define("EVENT_DESCRIPTION_ALLOW_ALL_HTML",1);		//allow all html tags in event description (this can be dangerous)
 
 /****************/

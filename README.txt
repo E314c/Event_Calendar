@@ -1,6 +1,6 @@
 /****************/
 /*Event Calendar*/
-/******v0.3******/
+/*****v0.3.5*****/
 /****************/
 
 
@@ -50,7 +50,9 @@ event_class		text
 /*How to use:*/
 /*************/
 
-Please see example_page.php
+1)Setup the user_defines.php page with the appropriate data and external functions.
+
+2) Refer to example_page.php to see how it works.
 
 Essentially you need to call the inlucde(calendar.php) in the html header (as the code inserts a <link stylesheet> tag)
 Make sure you've setup your database connection in the user_defines.
